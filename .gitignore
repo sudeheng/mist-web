@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Local settings and temporary files
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+.vscode/
+.idea/

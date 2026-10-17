@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ecebe4">
+  <meta name="description" content="一面会呼吸的雾镜。用手势、鼠标或触屏，擦开雾气，留下片刻清晰。">
+  <title>MIST 雾镜 · AI 隔空体感</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23374840'/%3E%3Cpath d='M17 43V24c0-13 30-13 30 0v19M24 43V25c0-6 16-6 16 0v18' fill='none' stroke='%23ecebe4' stroke-width='3'/%3E%3C/svg%3E">
+  <style>
+    :root { color-scheme: light; --paper: oklch(94% .012 91); --ink: oklch(28% .025 158); --muted: oklch(48% .018 145); --line: oklch(83% .018 92); --green: oklch(36% .04 156); --accent: oklch(51% .088 55); --white: oklch(98% .006 90); }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+    button, input { font: inherit; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, summary:focus-visible, canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+    button { color: inherit; }
+    button:disabled { cursor: wait; opacity: .55; }
+    button, summary { touch-action: manipulation; }
+    svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+    .page { width: min(1320px, calc(100% - 112px)); margin: 0 auto; }
+    .topbar { min-height: 92px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 32px; height: 38px; stroke-width: 1.25; }
+    .brand-name { font-size: 23px; letter-spacing: .16em; font-weight: 540; }
+    .brand-divider { height: 17px; width: 1px; background: var(--line); margin: 0 4px; }
+    .brand-cn { font-size: 13px; letter-spacing: .2em; }
+    .edition { font-size: 10px; letter-spacing: .15em; color: var(--muted); }
+    .local-note { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+    .local-note svg { width: 15px; height: 15px; }
+    .intro { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; padding: 39px 0 29px; }
+    .eyebrow { margin: 0 0 12px; display: flex; align-items: center; gap: 9px; font-size: 11px; letter-spacing: .16em; color: var(--accent); }
+    .eyebrow::before { content: ""; width: 17px; height: 1px; background: currentColor; }
+    h1 { font-size: 32px; font-weight: 480; letter-spacing: .06em; margin: 0; line-height: 1.45; }
+    .intro-copy { margin: 0 0 3px; font-size: 13px; color: var(--muted); line-height: 1.9; text-align: right; }
+    .experience { position: relative; }
+    .mirror-shell { position: relative; padding: 5px; border-radius: 28px; background: linear-gradient(130deg, #c7c9bc 0%, #faf9ee 28%, #a5aca0 66%, #e6e8dc 88%, #b3b8aa); box-shadow: 0 24px 55px -35px #283c395e, 0 2px 8px #39463712, inset 0 0 0 1px #bac0b5; }
+    .mirror { position: relative; height: min(53vw, 550px); min-height: 400px; border-radius: 23px; overflow: hidden; isolation: isolate; background: #536760; box-shadow: inset 0 0 0 1px #f1f1d855; }
+    #mirrorCanvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: none; }
+    .mirror::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px #f5f4df44, inset 0 0 45px #172c2a27; z-index: 4; }
+    .mirror-top { position: absolute; left: 26px; right: 22px; top: 23px; display: flex; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; z-index: 5; }
+    .live-status { display: flex; align-items: center; gap: 9px; font-size: 11px; letter-spacing: .08em; color: #f0f1e8; text-shadow: 0 1px 8px #183b30; }
+    .status-dot { width: 6px; height: 6px; background: #d5debc; border-radius: 50%; box-shadow: 0 0 0 4px #ced8b51a; }
+    .mirror-tools { display: flex; gap: 6px; pointer-events: auto; }
+    .icon-button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #eff1de40; border-radius: 50%; background: #23433730; color: #f2f4e8; transition: background .2s, transform .2s; }
+    .icon-button:hover { background: #23433780; transform: translateY(-1px); }
+    .icon-button[aria-pressed="true"] { background: #e2e8c6; color: #29463c; }
+    .mirror-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; padding-bottom: 26px; color: #f7f7ec; text-shadow: 0 2px 25px #153b3255; transition: opacity .6s, transform .6s; }
+    .mirror-center.is-hidden { opacity: 0; transform: translateY(-8px); }
+    .center-kicker { font-size: 10px; letter-spacing: .45em; opacity: .85; margin-bottom: 17px; }
+    .center-word { font-family: "Iowan Old Style", "Baskerville", "Times New Roman", serif; font-size: 104px; font-style: italic; font-weight: 400; letter-spacing: -.065em; line-height: 1.05; margin-right: 12px; }
+    .center-caption { font-size: 12px; letter-spacing: .36em; margin: 23px 0 0; }
+    .mirror-bottom { position: absolute; bottom: 24px; left: 26px; right: 26px; z-index: 4; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; pointer-events: none; color: #edf0df; }
+    .mirror-hint { display: flex; align-items: center; gap: 11px; font-size: 12px; letter-spacing: .05em; text-shadow: 0 1px 7px #183b30; }
+    .hint-circle { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #e2e8d34d; border-radius: 50%; }
+    .hint-circle svg { width: 15px; }
+    .mirror-coordinate { text-align: right; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 9px; letter-spacing: .16em; opacity: .8; line-height: 1.9; }
+    .cursor-label { position: absolute; left: 0; top: 0; color: #f1f2de; background: #29443acc; border: 1px solid #e2e8ce35; border-radius: 20px; padding: 5px 9px; font-size: 10px; pointer-events: none; z-index: 5; opacity: 0; white-space: nowrap; }
+    .control-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 2px 26px; border-bottom: 1px solid var(--line); }
+    .primary-controls { display: flex; gap: 10px; align-items: center; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 0 19px; font-size: 12px; letter-spacing: .04em; border-radius: 7px; border: 1px solid var(--line); background: transparent; transition: background .2s, transform .2s; white-space: nowrap; }
+    .button:hover { background: #dedfd4; }
+    .button:active { transform: translateY(1px); }
+    .button-primary { background: var(--green); color: var(--white); border-color: var(--green); }
+    .button-primary:hover { background: oklch(43% .04 156); }
+    .button svg { width: 16px; height: 16px; }
+    .settings { display: flex; align-items: center; gap: 30px; }
+    .range-field { width: 147px; }
+    .range-title { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 8px; }
+    .range-title output { color: var(--muted); font: 10px ui-monospace, monospace; }
+    input[type="range"] { width: 100%; height: 17px; display: block; margin: -4px 0; accent-color: var(--green); cursor: pointer; }
+    .palette-control { display: flex; align-items: center; gap: 10px; }
+    .palette-label { font-size: 11px; }
+    .swatches { display: flex; align-items: center; gap: 7px; }
+    .swatch { display: block; width: 23px; height: 23px; border-radius: 50%; padding: 3px; border: 1px solid transparent; background: transparent; }
+    .swatch::after { content: ""; display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--swatch); }
+    .swatch[aria-pressed="true"] { border-color: var(--green); }
+    .swatch:hover { border-color: var(--muted); }
+    .guide { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 25px 0 23px; }
+    .gesture-list { display: flex; gap: 34px; }
+    .gesture { display: flex; align-items: center; gap: 11px; }
+    .gesture svg { width: 25px; height: 30px; color: var(--muted); stroke-width: 1.2; }
+    .gesture strong { display: block; font-size: 11px; font-weight: 500; margin-bottom: 4px; }
+    .gesture span { display: block; font-size: 10px; color: var(--muted); }
+    .guide-note { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.9; text-align: right; }
+    .notice { display: none; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 13px 16px; border: 1px solid oklch(79% .04 73); background: oklch(92% .027 79); border-radius: 7px; font-size: 12px; line-height: 1.8; }
+    .notice.is-visible { display: flex; }
+    .notice button { background: none; border: 0; padding: 7px; }
+    .footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 23px 0 26px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .footer-mark { letter-spacing: .18em; padding-top: 2px; }
+    details { max-width: 490px; text-align: right; font-size: 11px; }
+    summary { cursor: pointer; list-style-position: inside; }
+    details p { text-align: left; line-height: 1.9; margin: 12px 0 0; }
+    details code { font-size: 11px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    #cameraVideo { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: -10px; top: -10px; }
+    .toast { position: fixed; bottom: 26px; left: 50%; transform: translate(-50%, 10px); max-width: calc(100% - 32px); border-radius: 7px; padding: 12px 20px; background: #2b4039; color: #f0f0e5; font-size: 12px; box-shadow: 0 8px 30px #21342e25; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 30; white-space: nowrap; }
+    .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+    .mirror-shell:fullscreen { width: 100vw; height: 100vh; padding: 0; border-radius: 0; background: #1e302a; }
+    .mirror-shell:fullscreen .mirror { width: 100%; height: 100%; border-radius: 0; }
+    @media (min-width: 1550px) { .intro { padding-top: 46px; padding-bottom: 35px; } .mirror { height: 580px; } }
+    @media (max-width: 1100px) { .page { width: calc(100% - 64px); } .settings { gap: 20px; } .range-field { width: 125px; } .edition { display: none; } .control-strip { gap: 22px; } .palette-label { display: none; } }
+    @media (max-width: 850px) { .page { width: calc(100% - 40px); } .topbar { min-height: 78px; } .intro { padding: 28px 0 24px; } h1 { font-size: 27px; } .intro-copy { font-size: 11px; } .mirror { min-height: 390px; } .control-strip { justify-content: center; } .primary-controls { flex: 1 0 auto; } .settings { flex: 1; justify-content: flex-end; } .range-field { width: 110px; } .guide { align-items: flex-start; } .gesture-list { gap: 20px; } .guide-note { max-width: 155px; } }
+    @media (max-width: 620px) { .page { width: calc(100% - 32px); } .brand-name { font-size: 20px; } .brand-icon { width: 28px; } .brand { gap: 8px; } .brand-cn { font-size: 11px; } .local-note { font-size: 10px; gap: 5px; } .local-note svg { width: 13px; } .intro { display: block; padding: 25px 0 21px; } .eyebrow { font-size: 9px; margin-bottom: 11px; } h1 { font-size: 25px; letter-spacing: .035em; } .intro-copy { text-align: left; font-size: 11px; margin: 9px 0 0; } .intro-copy br { display: none; } .mirror-shell { padding: 4px; border-radius: 22px; } .mirror { height: 470px; min-height: 350px; max-height: 64vh; border-radius: 18px; } .mirror-top { left: 17px; right: 14px; top: 16px; } .live-status { font-size: 10px; letter-spacing: .03em; } .icon-button { width: 32px; height: 32px; } .icon-button svg { width: 15px; } .center-word { font-size: 90px; } .center-caption { font-size: 10px; letter-spacing: .3em; } .mirror-bottom { bottom: 19px; left: 18px; right: 18px; } .mirror-hint { font-size: 10px; gap: 7px; } .mirror-coordinate { display: none; } .primary-controls { justify-content: center; flex: 1 1 100%; } .button { flex: 1; padding: 0 13px; } .control-strip { padding: 20px 0 22px; gap: 24px; } .settings { justify-content: space-between; gap: 20px; } .range-field { flex: 1; width: auto; max-width: 145px; } .palette-control { align-self: flex-end; margin-bottom: -2px; } .swatch { width: 22px; height: 22px; } .swatches { gap: 4px; } .guide { display: block; padding: 23px 0 20px; } .gesture-list { justify-content: space-between; gap: 10px; } .gesture { gap: 6px; } .gesture svg { width: 22px; } .gesture strong { font-size: 10px; } .gesture span { font-size: 9px; } .guide-note { text-align: left; max-width: none; font-size: 10px; margin-top: 18px; } .guide-note br { display: none; } .footer { padding: 18px 0 24px; } .footer-mark { font-size: 8px; letter-spacing: .1em; } details { max-width: 225px; font-size: 10px; } .toast { font-size: 11px; white-space: normal; text-align: center; width: max-content; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <svg class="sr-only" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="3"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 4-5 7-8 9-3-2-8-5-8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-pointer" viewBox="0 0 24 24"><path d="m5 3 14 10-7 1-3 7Z"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5ZM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-finger" viewBox="0 0 28 32"><path d="M11 17V5a2 2 0 0 1 4 0v11-3a2 2 0 0 1 4 0v4-2a2 2 0 0 1 4 0v7c0 5-3 7-7 7h-1c-3 0-5-2-7-5l-4-6c-1-2 2-4 4-2l3 3"/></symbol>
+    <symbol id="i-palm" viewBox="0 0 28 32"><path d="M7 17V9a2 2 0 0 1 4 0v7V5a2 2 0 0 1 4 0v11-9a2 2 0 0 1 4 0v10-6a2 2 0 0 1 4 0v11c0 5-3 7-7 7-4 0-7-2-9-6l-4-6c-1-2 2-4 4-1l3 4"/></symbol>
+    <symbol id="i-fist" viewBox="0 0 28 32"><path d="M6 16v-5a2.5 2.5 0 0 1 5 0v4-7a2.5 2.5 0 0 1 5 0v7-5a2.5 2.5 0 0 1 5 0v6-3a2 2 0 0 1 4 0v8c0 5-4 8-9 8-4 0-8-2-10-6l-2-5c-1-3 2-5 4-2l3 4h6"/></symbol>
+  </defs></svg>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand" aria-label="MIST 雾镜"><svg class="brand-icon" viewBox="0 0 32 38" aria-hidden="true"><path d="M3 34V15a13 13 0 0 1 26 0v19M9 34V15a7 7 0 0 1 14 0v19M15 34V17"/></svg><span class="brand-name">MIST</span><span class="brand-divider"></span><span class="brand-cn">雾镜</span></div>
+      <span class="edition">A SMALL EXPERIMENT IN PRESENCE · 001</span>
+      <div class="local-note"><svg aria-hidden="true"><use href="#i-shield"/></svg>影像只留在此刻</div>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="pageTitle">
+        <div><p class="eyebrow">AI 隔空体感实验</p><h1 id="pageTitle">拨开雾气，看见此刻。</h1></div>
+        <p class="intro-copy">一面会呼吸的镜子，一场与自己的相遇。<br>抬起手，让指尖留下片刻清晰。</p>
+      </section>
+      <section class="experience" aria-label="互动雾镜">
+        <div class="mirror-shell" id="mirrorShell">
+          <div class="mirror" id="mirror">
+            <canvas id="mirrorCanvas" tabindex="0" aria-label="互动雾镜。移动鼠标或拖动手指擦雾；按住鼠标细写。键盘方向键移动擦雾，Shift 加宽，R 重新起雾。">此体验需要支持 HTML5 Canvas 的浏览器。</canvas>
+            <div class="mirror-top">
+              <div class="live-status"><span class="status-dot" id="statusDot"></span><span id="statusText" role="status">自由体验 · 无需摄像头</span></div>
+              <div class="mirror-tools">
+                <button class="icon-button" id="soundButton" aria-label="开启环境音" aria-pressed="false" title="环境音"><svg aria-hidden="true"><use href="#i-sound"/></svg></button>
+                <button class="icon-button" id="saveButton" aria-label="保存当前镜面图片" title="保存此刻"><svg aria-hidden="true"><use href="#i-save"/></svg></button>
+                <button class="icon-button" id="fullscreenButton" aria-label="全屏体验" title="全屏体验"><svg aria-hidden="true"><use href="#i-expand"/></svg></button>
+              </div>
+            </div>
+            <div class="mirror-center" id="centerIntro" aria-hidden="true"><span class="center-kicker">BREATHE. WAVE. REVEAL.</span><span class="center-word">hello, you.</span><p class="center-caption">世界很快，此刻慢一点。</p></div>
+            <span class="cursor-label" id="cursorLabel" aria-hidden="true">轻轻擦拭</span>
+            <div class="mirror-bottom"><div class="mirror-hint"><span class="hint-circle"><svg aria-hidden="true"><use id="hintIcon" href="#i-pointer"/></svg></span><span id="mirrorHint">移动鼠标擦雾，按住细写</span></div><div class="mirror-coordinate">A MOMENT OF CLARITY<br><span id="sceneLabel">01 / 苔光</span></div></div>
+          </div>
+        </div>
+        <div id="notice" class="notice" role="alert"><span id="noticeText"></span><button id="dismissNotice" aria-label="关闭提示">✕</button></div>
+        <div class="control-strip">
+          <div class="primary-controls"><button class="button button-primary" id="cameraButton"><svg aria-hidden="true"><use href="#i-camera"/></svg><span id="cameraButtonText">开启体感镜像</span></button><button class="button" id="resetButton"><svg aria-hidden="true"><use href="#i-reset"/></svg>重新起雾</button></div>
+          <div class="settings">
+            <div class="range-field"><div class="range-title"><label for="density">雾气浓度</label><output for="density" id="densityValue">82%</output></div><input id="density" type="range" min="30" max="100" value="82" aria-label="雾气浓度"></div>
+            <div class="range-field"><div class="range-title"><label for="returnSpeed">雾气回归</label><output for="returnSpeed" id="returnValue">缓慢</output></div><input id="returnSpeed" type="range" min="0" max="3" step="1" value="1" aria-label="雾气回归速度" aria-valuetext="缓慢"></div>
+            <div class="palette-control"><span class="palette-label" id="paletteLabel">镜面色调</span><div class="swatches" role="group" aria-labelledby="paletteLabel"><button class="swatch" data-palette="moss" style="--swatch:#667767" aria-label="苔光色调" aria-pressed="true" title="苔光"></button><button class="swatch" data-palette="amber" style="--swatch:#b89476" aria-label="琥珀色调" aria-pressed="false" title="琥珀"></button><button class="swatch" data-palette="moon" style="--swatch:#8797a5" aria-label="月白色调" aria-pressed="false" title="月白"></button></div></div>
+          </div>
+        </div>
+        <div class="guide">
+          <div class="gesture-list" aria-label="摄像头手势说明"><div class="gesture"><svg aria-hidden="true"><use href="#i-finger"/></svg><div><strong>伸出食指</strong><span>在雾中轻轻写字</span></div></div><div class="gesture"><svg aria-hidden="true"><use href="#i-palm"/></svg><div><strong>张开手掌</strong><span>擦开一片清晰</span></div></div><div class="gesture"><svg aria-hidden="true"><use href="#i-fist"/></svg><div><strong>轻轻握拳</strong><span>停笔，让雾气回归</span></div></div></div>
+          <p class="guide-note">体感模式下，站在距镜头约一臂的位置。<br>无需穿戴设备，也无需触碰屏幕。</p>
+        </div>
+      </section>
+    </main>
+    <footer class="footer"><span class="footer-mark">LESS NOISE. MORE PRESENCE.</span><details><summary>关于体验与隐私</summary><p>镜面由 Canvas 实时绘制。自由体验支持鼠标、触屏和键盘，可以离线使用。聚焦镜面后，使用方向键擦雾，按住 Shift 加宽，按 R 重新起雾。</p><p>体感模式需允许摄像头，并联网加载 MediaPipe 手部识别组件与模型。识别在浏览器内完成，不上传、不录制影像；点击「关闭体感镜像」即释放摄像头。建议使用 Chrome 或 Edge，并通过 HTTPS 或 localhost 打开。</p><p>文件可直接打开；如摄像头受限，在本文件目录运行 <code>python3 -m http.server 8080</code>，访问 <code>http://localhost:8080/</code>。环境音默认关闭；「保存此刻」只在你点击后下载镜面 PNG。</p></details></footer>
+  </div>
+  <video id="cameraVideo" autoplay muted playsinline aria-hidden="true"></video>
+  <div class="toast" id="toast" role="status"></div>
+  <noscript><p style="padding:24px">请启用 JavaScript，以体验互动雾镜。</p></noscript>
+  <!-- Single-file application. No build step, image assets, font downloads or framework.
+       Optional AI only: pinned MediaPipe 0.10.21 + official float16 hand model.
+       API reference: https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js -->
+  <script>
+  (() => {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const canvas = $('mirrorCanvas'), ctx = canvas.getContext('2d', { alpha: false });
+    const video = $('cameraVideo');
+    const makeCanvas = () => document.createElement('canvas');
+    const scene = makeCanvas(), texture = makeCanvas(), mask = makeCanvas(), composite = makeCanvas();
+    const sc = scene.getContext('2d'), tx = texture.getContext('2d'), mk = mask.getContext('2d'), fc = composite.getContext('2d');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const palettes = {
+      moss: { name:'01 / 苔光', dark:'#183b32', mid:'#647f69', light:'#d8c79a', fog:[151,170,155], glow:[239,213,157], ink:'#d5dcc2' },
+      amber: { name:'02 / 琥珀', dark:'#50362c', mid:'#a17c60', light:'#efce9a', fog:[187,161,135], glow:[255,219,169], ink:'#ede0c6' },
+      moon: { name:'03 / 月白', dark:'#223645', mid:'#657f96', light:'#cbd3dd', fog:[156,175,188], glow:[216,232,247], ink:'#d4e4eb' }
+    };
+    const state = { width:1, height:1, dpr:1, density:.82, returnTime:22, palette:'moss', camera:false, loading:false, session:0, stream:null, engine:null, busy:false, lastVideoTime:-1, lastDetect:0, lastResult:0, hands:[], particles:[], interacted:false, pointer:null, previous:new Map(), lastFrame:0, fogElapsed:0, fogRemainder:0, audio:null, audioOn:false, resizeTimer:0 };
+    const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
+    const mix = (a,b,t) => a+(b-a)*t;
+    let seed = 1792;
+    const rand = () => { seed = (Math.imul(1664525,seed)+1013904223) >>> 0; return seed/4294967296; };
+    const color = (rgb, a=1) => `rgba(${rgb.join(',')},${a})`;
+    function glow(context, x,y,r,rgb,alpha) {
+      const g=context.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,color(rgb,alpha)); g.addColorStop(.38,color(rgb,alpha*.45)); g.addColorStop(1,color(rgb,0)); context.fillStyle=g; context.fillRect(x-r,y-r,r*2,r*2);
+    }
+    function notify(message) { $('toast').textContent=message; $('toast').classList.add('is-visible'); clearTimeout(notify.timer); notify.timer=setTimeout(()=>$('toast').classList.remove('is-visible'),2600); }
+    function notice(message) { $('noticeText').textContent=message; $('notice').classList.add('is-visible'); }
+    $('dismissNotice').addEventListener('click',()=>$('notice').classList.remove('is-visible'));
+    function status(text, active=false) { if ($('statusText').textContent!==text) $('statusText').textContent=text; $('statusDot').style.background=active?'#d8eea5':'#d5debc'; }
+    function interact() { if (!state.interacted) { state.interacted=true; $('centerIntro').classList.add('is-hidden'); } }
+
+    // All atmosphere is procedural: defocused light, rippled glass, micro-grain and condensation.
+    function buildScene() {
+      const {width:w,height:h,dpr:d}=state, p=palettes[state.palette]; seed=1792;
+      sc.setTransform(d,0,0,d,0,0); tx.setTransform(d,0,0,d,0,0);
+      const bg=sc.createLinearGradient(0,h,w,0); bg.addColorStop(0,p.dark); bg.addColorStop(.6,p.mid); bg.addColorStop(1,p.light); sc.fillStyle=bg; sc.fillRect(0,0,w,h);
+      // Soft architecture and elongated reflections give the untouched glass depth.
+      for(let i=0;i<21;i++) { const x=rand()*w, width=rand()*90+15; const g=sc.createLinearGradient(x,0,x+width,0); g.addColorStop(0,'#162d2700'); g.addColorStop(.5,'#142d2740'); g.addColorStop(1,'#162d2700'); sc.fillStyle=g; sc.fillRect(x,0,width,h); }
+      glow(sc,w*.83,h*.2,w*.48,p.glow,.85); glow(sc,w*.13,h*.88,w*.42,[89,149,123],.3);
+      for(let i=0;i<55;i++) {
+        const x=rand()*w,y=h*(.25+rand()*.8),r=3+rand()*29;
+        glow(sc,x,y,r*1.8,p.glow,.15+rand()*.55);
+        sc.beginPath(); sc.arc(x,y,r,0,Math.PI*2); sc.strokeStyle=color(p.glow,.025+rand()*.05); sc.lineWidth=.8; sc.stroke();
+      }
+      // A flowing luminous reflection, revealed by each stroke.
+      sc.save(); sc.translate(w*.52,h*.56); sc.rotate(-.35);
+      for(let i=0;i<5;i++) { sc.beginPath(); sc.ellipse(0,0,w*(.2+i*.027),h*(.30+i*.025),0,0,Math.PI*2); sc.strokeStyle=color(p.glow,.045); sc.lineWidth=12-i*2; sc.stroke(); } sc.restore();
+      tx.fillStyle=color(p.fog); tx.fillRect(0,0,w,h);
+      glow(tx,w*.85,h*.06,w*.74,p.glow,.52); glow(tx,w*.05,h*.98,w*.7,[34,74,60],.45);
+      for(let i=0;i<36;i++) glow(tx,rand()*w,rand()*h,70+rand()*w*.28,rand()>.45?p.glow:[86,117,104],.045+rand()*.045);
+      // Pixel texture is precomputed once, never read back in the animation loop.
+      const grain=makeCanvas(); grain.width=256; grain.height=256; const gctx=grain.getContext('2d'), data=gctx.createImageData(256,256);
+      for(let i=0;i<data.data.length;i+=4) { const v=rand()>.5?238:43; data.data[i]=v; data.data[i+1]=v+3; data.data[i+2]=v; data.data[i+3]=rand()*13; } gctx.putImageData(data,0,0);
+      tx.fillStyle=tx.createPattern(grain,'repeat'); tx.fillRect(0,0,w,h);
+      for(let i=0;i<Math.min(1000,w*h/560);i++) {
+        const x=rand()*w,y=rand()*h,r=.35+Math.pow(rand(),3)*2.1;
+        tx.beginPath(); tx.ellipse(x,y,r,r*(1+rand()*.5),0,0,Math.PI*2); tx.strokeStyle='#eff1d920'; tx.lineWidth=.65; tx.stroke();
+        tx.beginPath(); tx.arc(x,y+.6,r*.55,0,Math.PI); tx.strokeStyle='#284b3926'; tx.stroke();
+        if(r>2) { tx.fillStyle='#f2eed644'; tx.fillRect(x-r*.3,y-r*.4,.7,.7); }
+      }
+    }
+    function resize() {
+      const rect=$('mirror').getBoundingClientRect();
+      if(rect.width<2 || rect.height<2) return;
+      // Preserve the fog mask through orientation changes and fullscreen transitions.
+      const old=makeCanvas(); old.width=mask.width; old.height=mask.height; if(mask.width>1) old.getContext('2d').drawImage(mask,0,0);
+      const hadSize=state.width>1; state.width=rect.width; state.height=rect.height;
+      state.dpr=Math.min(devicePixelRatio||1,1.65,Math.sqrt(2300000/(rect.width*rect.height)));
+      for(const c of [canvas,scene,texture,mask,composite]) { c.width=Math.round(rect.width*state.dpr); c.height=Math.round(rect.height*state.dpr); }
+      mk.setTransform(1,0,0,1,0,0); mk.fillStyle='#f0f0e8'; mk.fillRect(0,0,mask.width,mask.height);
+      if(hadSize) { mk.clearRect(0,0,mask.width,mask.height); mk.drawImage(old,0,0,mask.width,mask.height); }
+      state.previous.clear(); state.pointer=null; state.hands=[]; buildScene();
+    }
+    new ResizeObserver(()=>{clearTimeout(state.resizeTimer); state.resizeTimer=setTimeout(resize,90);}).observe($('mirror'));
+
+    // A soft brush writes into an alpha mask; the clear video remains untouched below it.
+    function dab(x,y,radius,strength=.58) {
+      const d=state.dpr; mk.setTransform(d,0,0,d,0,0); mk.globalCompositeOperation='destination-out';
+      const g=mk.createRadialGradient(x,y,0,x,y,radius); g.addColorStop(0,`rgba(0,0,0,${strength})`); g.addColorStop(.58,`rgba(0,0,0,${strength*.97})`); g.addColorStop(.84,`rgba(0,0,0,${strength*.55})`); g.addColorStop(1,'rgba(0,0,0,0)'); mk.fillStyle=g; mk.fillRect(x-radius,y-radius,radius*2,radius*2); mk.globalCompositeOperation='source-over';
+    }
+    function stroke(id,x,y,radius,now,emit=true) {
+      const prev=state.previous.get(id); const valid=prev && now-prev.time<180 && Math.hypot(x-prev.x,y-prev.y)<state.width*.28 && Math.abs(radius-prev.radius)<radius*.9;
+      const dist=valid?Math.hypot(x-prev.x,y-prev.y):0;
+      const steps=Math.min(70,Math.max(1,Math.ceil(dist/(radius*.22))));
+      for(let i=1;i<=steps;i++) dab(valid?mix(prev.x,x,i/steps):x,valid?mix(prev.y,y,i/steps):y,radius);
+      state.previous.set(id,{x,y,time:now,radius});
+      if(emit && !reducedMotion.matches && dist>2) spawnParticles(x,y,radius,Math.min(3,Math.ceil(dist/12)));
+    }
+    function spawnParticles(x,y,r,count) {
+      for(let i=0;i<count && state.particles.length<95;i++) { const a=Math.random()*Math.PI*2; state.particles.push({x:x+Math.cos(a)*r*.75,y:y+Math.sin(a)*r*.65,vx:Math.cos(a)*10,vy:8+Math.random()*15,life:1,max:1.2+Math.random(),r:.6+Math.random()*1.4}); }
+    }
+    function resetFog(announce=true) {
+      mk.setTransform(1,0,0,1,0,0); mk.globalCompositeOperation='source-over'; mk.globalAlpha=1; mk.fillStyle='#f0f0e8'; mk.fillRect(0,0,mask.width,mask.height);
+      state.previous.clear(); state.particles=[]; state.fogElapsed=0; state.fogRemainder=0; if(announce) notify('雾气回来了，重新留下你的痕迹。');
+    }
+    function pointerPosition(event) { const rect=canvas.getBoundingClientRect(); return {x:event.clientX-rect.left,y:event.clientY-rect.top}; }
+    function pointerMove(event) {
+      if(state.camera || state.loading || (event.pointerType==='touch' && !canvas.hasPointerCapture(event.pointerId))) return;
+      const p=pointerPosition(event); const radius=event.buttons?15:50;
+      state.pointer={...p,radius,label:event.buttons?'指尖细写':'轻轻擦拭',time:performance.now()};
+      stroke('pointer',p.x,p.y,radius,performance.now()); interact();
+    }
+    canvas.addEventListener('pointerdown',event=>{ if(state.camera || state.loading) return; canvas.setPointerCapture(event.pointerId); state.previous.delete('pointer'); pointerMove(event); });
+    canvas.addEventListener('pointermove',pointerMove);
+    canvas.addEventListener('pointerup',event=>{ if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId); state.previous.delete('pointer'); if(event.pointerType!=='mouse')state.pointer=null; });
+    for(const name of ['pointerleave','pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{state.pointer=null; state.previous.delete('pointer');});
+    canvas.addEventListener('keydown',event=>{
+      if(event.key.toLowerCase()==='r') { event.preventDefault(); resetFog(); return; }
+      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) || state.camera) return;
+      event.preventDefault(); const p=state.pointer||{x:state.width/2,y:state.height/2}; const step=event.shiftKey?18:9;
+      p.x=clamp(p.x+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0),0,state.width); p.y=clamp(p.y+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0),0,state.height);
+      p.radius=event.shiftKey?50:16; p.label=event.shiftKey?'轻轻擦拭':'指尖细写'; p.time=performance.now(); state.pointer=p; stroke('keyboard',p.x,p.y,p.radius,p.time); interact();
+    });
+    canvas.addEventListener('blur',()=>{state.pointer=null;state.previous.delete('keyboard');});
+    $('resetButton').addEventListener('click',()=>resetFog());
+    $('density').addEventListener('input',e=>{state.density=Number(e.target.value)/100;$('densityValue').value=e.target.value+'%';});
+    $('returnSpeed').addEventListener('input',e=>{const i=Number(e.target.value);state.returnTime=[0,22,11,5][i];const label=['停留','缓慢','自然','轻快'][i];$('returnValue').value=label;e.target.setAttribute('aria-valuetext',label);});
+    document.querySelectorAll('[data-palette]').forEach(button=>button.addEventListener('click',()=>{state.palette=button.dataset.palette;document.querySelectorAll('[data-palette]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('sceneLabel').textContent=palettes[state.palette].name;buildScene();}));
+
+    // The displayed reflection and hand coordinates share the same mirrored cover transform.
+    function videoRect() {
+      const vw=video.videoWidth||640,vh=video.videoHeight||480;
+      const scale=Math.max(state.width/vw,state.height/vh),w=vw*scale,h=vh*scale;
+      return {x:(state.width-w)/2,y:(state.height-h)/2,w,h};
+    }
+    function mapLandmark(p) { const r=videoRect(); return {x:r.x+(1-p.x)*r.w,y:r.y+p.y*r.h}; }
+    function distance(a,b) { return Math.hypot(a.x-b.x,a.y-b.y,(a.z||0)-(b.z||0)); }
+    function fingerExtended(lm,tip,pip,mcp) {
+      // Angles and wrist-relative lengths remain useful when the hand rotates.
+      const a=lm[mcp], b=lm[pip], c=lm[tip];
+      const ux=a.x-b.x,uy=a.y-b.y,uz=(a.z||0)-(b.z||0),vx=c.x-b.x,vy=c.y-b.y,vz=(c.z||0)-(b.z||0);
+      const cosine=(ux*vx+uy*vy+uz*vz)/(Math.hypot(ux,uy,uz)*Math.hypot(vx,vy,vz)+1e-6);
+      return cosine<-.35 && distance(c,lm[0])>distance(b,lm[0])*1.12;
+    }
+    function classifyHand(lm) {
+      const extended=[fingerExtended(lm,8,6,5),fingerExtended(lm,12,10,9),fingerExtended(lm,16,14,13),fingerExtended(lm,20,18,17)];
+      const count=extended.filter(Boolean).length;
+      if(count>=3) return 'palm';
+      if(extended[0] && count<=2) return 'write';
+      return 'rest';
+    }
+    function receiveHands(landmarks,session) {
+      if(session!==state.session || !state.camera) return;
+      const now=performance.now(), oldHands=state.hands.slice(), used=new Set();
+      state.lastResult=now; state.busy=false;
+      state.hands=landmarks.map((lm,i)=>{
+        const gesture=classifyHand(lm), anchor=gesture==='write'?lm[8]:{x:(lm[0].x+lm[5].x+lm[9].x+lm[17].x)/4,y:(lm[0].y+lm[5].y+lm[9].y+lm[17].y)/4};
+        const pos=mapLandmark(anchor), palmSize=distance(lm[5],lm[17])*videoRect().w;
+        let prev=null,best=state.width*.24;
+        for(const hand of oldHands) { const dist=Math.hypot(hand.rawX-pos.x,hand.rawY-pos.y); if(!used.has(hand.id)&&dist<best){best=dist;prev=hand;} }
+        const id=prev?prev.id:`hand-${now}-${i}`; used.add(id);
+        const stable=prev && prev.gesture===gesture;
+        const smoothing=stable?clamp(best/90,.36,.83):1;
+        if(!stable) state.previous.delete(id);
+        return {id,gesture,rawX:pos.x,rawY:pos.y,x:stable?mix(prev.x,pos.x,smoothing):pos.x,y:stable?mix(prev.y,pos.y,smoothing):pos.y,radius:gesture==='write'?clamp(palmSize*.16,9,23):clamp(palmSize*.68,35,115),points:lm};
+      });
+      for(const hand of oldHands) if(!used.has(hand.id))state.previous.delete(hand.id);
+      const active=state.hands.find(h=>h.gesture!=='rest');
+      if(active) status(active.gesture==='write'?'已识别食指 · 指尖细写':'已识别手掌 · 隔空擦雾',true);
+      else status(state.hands.length?'已识别握拳 · 停笔':'体感镜像 · 等待你的手',false);
+      for(const hand of state.hands) {
+        if(hand.gesture!=='rest') { stroke(hand.id,hand.x,hand.y,hand.radius,now); interact(); }
+        else state.previous.delete(hand.id);
+      }
+    }
+
+    const VISION_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs';
+    const WASM_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm';
+    const MODEL_URL='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+    function withTimeout(promise,ms,message) { let timer; return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),ms);})]).finally(()=>clearTimeout(timer)); }
+
+    // Inline Blob worker keeps AI inference off the animation thread without a second file.
+    // Browsers lacking OffscreenCanvas use throttled main-thread inference instead.
+    async function createEngine(session) {
+      if(typeof Worker!=='undefined' && typeof OffscreenCanvas!=='undefined') {
+        const source=`
+          let model;
+          self.onmessage=async ({data})=>{
+            if(data.type==='init'){
+              try {
+                const {HandLandmarker,FilesetResolver}=await import(data.vision);
+                const files=await FilesetResolver.forVisionTasks(data.wasm);
+                model=await HandLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:data.model,delegate:'CPU'},canvas:new OffscreenCanvas(640,480),runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.55,minTrackingConfidence:.55});
+                self.postMessage({type:'ready'});
+              } catch(error) { self.postMessage({type:'error',message:error.message||String(error)}); }
+            } else if(data.type==='frame'){
+              try { const result=model.detectForVideo(data.bitmap,data.time); self.postMessage({type:'result',landmarks:result.landmarks}); }
+              catch(error){ self.postMessage({type:'error',message:error.message||String(error)}); }
+              finally { data.bitmap.close(); }
+            }
+          };`;
+        const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+        let worker;
+        // Classic worker: MediaPipe's WASM loader uses importScripts internally.
+        // The vision ESM is still loaded with dynamic import inside that worker.
+        try { worker=new Worker(url); } catch(error) { URL.revokeObjectURL(url); return createMainEngine(session); }
+        let resolveReady,rejectReady,ready=false,disposed=false;
+        const readyPromise=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
+        const engine={kind:'worker',worker,dispose(){if(disposed)return;disposed=true;worker.terminate();URL.revokeObjectURL(url);rejectReady(new Error('已取消启动'));}};
+        state.pendingEngine=engine;
+        worker.onmessage=({data})=>{
+          if(disposed || session!==state.session)return;
+          if(data.type==='ready') { ready=true;resolveReady(engine); }
+          else if(data.type==='result') receiveHands(data.landmarks,session);
+          else if(data.type==='error') { if(!ready)rejectReady(new Error(data.message));else cameraFailure('手势识别暂时中断，已返回自由体验。可以重新开启摄像头。',session); }
+        };
+        worker.onerror=event=>{if(!ready)rejectReady(new Error(event.message||'识别组件未能启动'));else cameraFailure('手势识别暂时中断，已返回自由体验。',session);};
+        worker.postMessage({type:'init',vision:VISION_URL,wasm:WASM_URL,model:MODEL_URL});
+        try { return await withTimeout(readyPromise,45000,'手势模型加载超时，请检查网络后重试'); }
+        catch(error) { engine.dispose(); if(session===state.session && /Offscreen|WebGL|context|importScripts/i.test(error.message))return createMainEngine(session); throw error; }
+      }
+      return createMainEngine(session);
+    }
+    async function createMainEngine(session) {
+      const {HandLandmarker,FilesetResolver}=await withTimeout(import(VISION_URL),25000,'识别组件加载超时');
+      if(session!==state.session)throw new Error('已取消启动');
+      const files=await withTimeout(FilesetResolver.forVisionTasks(WASM_URL),25000,'识别组件加载超时');
+      if(session!==state.session)throw new Error('已取消启动');
+      const pending=HandLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:MODEL_URL,delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.55,minHandPresenceConfidence:.55,minTrackingConfidence:.55});
+      let abandoned=false;
+      pending.then(model=>{if(abandoned||session!==state.session)model.close();},()=>{});
+      let model;
+      try {model=await withTimeout(pending,45000,'手势模型加载超时');}catch(error){abandoned=true;throw error;}
+      if(session!==state.session)throw new Error('已取消启动');
+      let disposed=false;
+      return {kind:'main',model,dispose(){if(!disposed){disposed=true;model.close();}}};
+    }
+    function stopCamera(announce=false) {
+      state.session++; state.loading=false; state.camera=false; state.busy=false;
+      if(state.pendingEngine)state.pendingEngine.dispose();state.pendingEngine=null;
+      if(state.engine)state.engine.dispose();state.engine=null;
+      if(state.stream)state.stream.getTracks().forEach(track=>track.stop());state.stream=null;
+      video.pause();video.srcObject=null;state.hands=[];state.previous.clear();state.pointer=null;state.lastVideoTime=-1;
+      $('cameraButtonText').textContent='开启体感镜像';$('cameraButton').removeAttribute('aria-busy');$('cameraButton').setAttribute('aria-pressed','false');
+      $('mirrorHint').textContent=matchMedia('(pointer: coarse)').matches?'拖动手指，在雾中留下痕迹':'移动鼠标擦雾，按住细写';$('hintIcon').setAttribute('href','#i-pointer');
+      status('自由体验 · 无需摄像头');if(announce)notify('摄像头已关闭，继续自由体验。');
+    }
+    function cameraFailure(message,session) { if(session!==state.session)return;stopCamera();notice(message); }
+    async function startCamera() {
+      if(state.loading||state.camera){stopCamera(true);return;}
+      if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia){notice('当前环境无法调用摄像头。请通过 HTTPS 或 localhost 打开；鼠标和触屏体验仍可使用。');return;}
+      const session=++state.session;state.loading=true;state.pointer=null;state.previous.clear();$('notice').classList.remove('is-visible');
+      $('cameraButtonText').textContent='取消启动';$('cameraButton').setAttribute('aria-busy','true');status('等待摄像头授权…');
+      try {
+        const request=navigator.mediaDevices.getUserMedia({video:{width:{ideal:960},height:{ideal:720},facingMode:'user',frameRate:{ideal:30,max:30}},audio:false});
+        request.then(stream=>{if(session!==state.session)stream.getTracks().forEach(t=>t.stop());},()=>{});
+        const stream=await withTimeout(request,60000,'等待授权超时，请点击开启后重试');
+        if(session!==state.session)return;
+        state.stream=stream;video.srcObject=stream;
+        stream.getVideoTracks().forEach(track=>track.addEventListener('ended',()=>cameraFailure('摄像头已断开。连接设备后可以重新开启，自由体验仍可使用。',session)));
+        await withTimeout(video.play(),12000,'摄像头画面暂时无法播放');
+        if(session!==state.session)return;
+        status('正在准备手势识别…');$('mirrorHint').textContent='首次加载手势模型，请稍候';
+        const engine=await createEngine(session);
+        if(session!==state.session){engine.dispose();return;}
+        state.pendingEngine=null;state.engine=engine;state.camera=true;state.loading=false;state.busy=false;state.lastResult=performance.now();state.lastDetect=0;
+        $('cameraButtonText').textContent='关闭体感镜像';$('cameraButton').removeAttribute('aria-busy');$('cameraButton').setAttribute('aria-pressed','true');
+        $('mirrorHint').textContent='抬起手掌，轻轻拂过眼前';$('hintIcon').setAttribute('href','#i-palm');
+        status('体感镜像 · 等待你的手');interact();resetFog(false);notify('镜像已就绪。张掌擦雾，食指细写，握拳停笔。');
+      } catch(error) {
+        if(session!==state.session)return;
+        const messages={NotAllowedError:'未获得摄像头权限。你可以在浏览器地址栏允许访问，再重新开启。',NotFoundError:'未找到摄像头。连接摄像头后再试，或继续使用鼠标和触屏。',NotReadableError:'摄像头可能被其他应用占用，请关闭占用它的应用后重试。',OverconstrainedError:'摄像头不支持当前配置，请尝试其他设备。',SecurityError:'浏览器限制了摄像头访问，请通过 HTTPS 或 localhost 打开。'};
+        const message=messages[error.name]||'体感模式未能启动。请检查网络能否访问识别组件与模型，再重试；自由体验仍可使用。';
+        console.warn('[MIST] Camera initialization:',error.name,error.message);cameraFailure(message,session);
+      }
+    }
+    $('cameraButton').addEventListener('click',startCamera);
+    async function inferFrame(now) {
+      const engine=state.engine,session=state.session;
+      if(!state.camera||!engine||state.busy||video.readyState<2||video.currentTime===state.lastVideoTime||now-state.lastDetect<(engine.kind==='worker'?42:85))return;
+      state.lastVideoTime=video.currentTime;state.lastDetect=now;state.busy=true;
+      try {
+        if(engine.kind==='worker') {
+          const bitmap=await createImageBitmap(video,{resizeWidth:640,resizeHeight:Math.round(640*video.videoHeight/video.videoWidth)});
+          if(session!==state.session||!state.camera){bitmap.close();return;}
+          engine.worker.postMessage({type:'frame',bitmap,time:now},[bitmap]);
+        } else { const result=engine.model.detectForVideo(video,now);receiveHands(result.landmarks,session); }
+      } catch(error) { cameraFailure('无法继续识别手势，已返回自由体验。请重新开启体感镜像。',session); }
+    }
+
+    function drawReflection(context) {
+      const r=videoRect(); context.save();context.translate(state.width,0);context.scale(-1,1);context.drawImage(video,r.x,r.y,r.w,r.h);context.restore();
+    }
+    function drawCursor(hand,now) {
+      const p=palettes[state.palette],r=hand.radius;
+      ctx.save();ctx.strokeStyle=hand.gesture==='rest'?'#ebeddf66':'#f0f1dcb8';ctx.lineWidth=.85;
+      ctx.beginPath();ctx.arc(hand.x,hand.y,hand.gesture==='rest'?13:r*.84,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(hand.x,hand.y,2,0,Math.PI*2);ctx.fillStyle=p.ink;ctx.fill();
+      if(hand.gesture!=='rest'&&!reducedMotion.matches) {ctx.beginPath();const a=now*.0007;ctx.arc(hand.x,hand.y,r*.84+5,a,a+.5);ctx.strokeStyle='#eff3d77a';ctx.stroke();}ctx.restore();
+    }
+    function draw(now,dt) {
+      const {width:w,height:h,dpr:d}=state,p=palettes[state.palette];
+      ctx.setTransform(d,0,0,d,0,0);ctx.globalAlpha=1;ctx.drawImage(scene,0,0,w,h);
+      if(state.camera&&video.readyState>=2)drawReflection(ctx);
+      // Add coverage in 100 ms batches, retaining fractional alpha between batches.
+      // Additive alpha reaches fully opaque; exponential source-over stalls near 85%.
+      state.fogElapsed+=dt;
+      if(state.returnTime>0&&state.fogElapsed>=.1) {
+        state.fogRemainder+=state.fogElapsed*255/state.returnTime;
+        const coverage=Math.floor(state.fogRemainder);state.fogRemainder-=coverage;
+        mk.setTransform(1,0,0,1,0,0);mk.globalCompositeOperation='lighter';mk.fillStyle=`rgba(240,240,232,${coverage/255})`;mk.fillRect(0,0,mask.width,mask.height);mk.globalCompositeOperation='source-over';state.fogElapsed=0;
+      } else if(state.returnTime===0)state.fogElapsed=0;
+      fc.setTransform(d,0,0,d,0,0);fc.globalCompositeOperation='source-over';fc.globalAlpha=1;fc.clearRect(0,0,w,h);
+      // Blur the reflection within the frost layer; the erased areas retain clear video.
+      fc.drawImage(texture,0,0,w,h);
+      if(state.camera&&video.readyState>=2){fc.save();fc.globalAlpha=.26;fc.filter='blur(18px)';drawReflection(fc);fc.restore();}
+      if(!reducedMotion.matches){const drift=Math.sin(now*.00012);glow(fc,w*(.63+drift*.07),h*.18,w*.52,p.glow,.065);}
+      fc.globalCompositeOperation='destination-in';fc.drawImage(mask,0,0,w,h);fc.globalCompositeOperation='source-over';
+      ctx.globalAlpha=state.density;ctx.drawImage(composite,0,0,w,h);ctx.globalAlpha=1;
+      const vignette=ctx.createRadialGradient(w*.5,h*.43,h*.13,w*.5,h*.5,Math.max(w*.63,h*.8));vignette.addColorStop(0,'#142f2300');vignette.addColorStop(1,'#142f2354');ctx.fillStyle=vignette;ctx.fillRect(0,0,w,h);
+      for(let i=state.particles.length-1;i>=0;i--){const drop=state.particles[i];drop.life-=dt/drop.max;if(drop.life<=0){state.particles.splice(i,1);continue;}drop.x+=drop.vx*dt;drop.y+=drop.vy*dt;ctx.beginPath();ctx.ellipse(drop.x,drop.y,drop.r,drop.r*1.6,0,0,Math.PI*2);ctx.fillStyle=color(p.glow,drop.life*.42);ctx.fill();}
+      let labelTarget=null;
+      if(state.camera) {
+        if(now-state.lastResult>300){state.hands=[];state.previous.clear();status('体感镜像 · 等待你的手');}
+        for(const hand of state.hands){drawCursor(hand,now);labelTarget=hand;}
+      } else if(state.pointer&&now-state.pointer.time<2000){drawCursor(state.pointer,now);labelTarget=state.pointer;}
+      const label=$('cursorLabel');
+      if(labelTarget){label.textContent=labelTarget.label||({palm:'张掌 · 擦雾',write:'食指 · 细写',rest:'握拳 · 停笔'}[labelTarget.gesture]);label.style.opacity='1';label.style.transform=`translate(${clamp(labelTarget.x+18,10,w-110)}px,${clamp(labelTarget.y+28,65,h-80)}px)`;}
+      else label.style.opacity='0';
+    }
+    function frame(now) {
+      requestAnimationFrame(frame);
+      if(document.hidden){state.lastFrame=now;return;}
+      const dt=Math.min((now-(state.lastFrame||now))/1000,.08);state.lastFrame=now;
+      inferFrame(now);draw(now,dt);
+      if(state.camera&&state.busy&&now-state.lastDetect>10000)cameraFailure('手势识别响应超时，已返回自由体验。可以重新开启摄像头。',state.session);
+    }
+
+    // A quiet filtered-noise soundscape is created locally, only after explicit opt-in.
+    async function toggleAudio() {
+      try {
+        const AudioContext=window.AudioContext||window.webkitAudioContext;
+        if(!AudioContext){notify('此浏览器暂不支持环境音。');return;}
+        if(!state.audio) {
+          const audio=new AudioContext(),length=audio.sampleRate*4,buffer=audio.createBuffer(2,length,audio.sampleRate);
+          for(let ch=0;ch<2;ch++){const samples=buffer.getChannelData(ch);let brown=0;for(let i=0;i<length;i++){brown=(brown+(Math.random()*2-1)*.025)/1.025;samples[i]=brown*3;}}
+          const source=audio.createBufferSource();source.buffer=buffer;source.loop=true;
+          const filter=audio.createBiquadFilter();filter.type='lowpass';filter.frequency.value=560;
+          const gain=audio.createGain();gain.gain.value=0;source.connect(filter).connect(gain).connect(audio.destination);source.start();state.audio={context:audio,gain};
+        }
+        await state.audio.context.resume();state.audioOn=!state.audioOn;
+        state.audio.gain.gain.setTargetAtTime(state.audioOn ? .11 : 0,state.audio.context.currentTime,.45);
+        $('soundButton').setAttribute('aria-pressed',String(state.audioOn));$('soundButton').setAttribute('aria-label',state.audioOn?'关闭环境音':'开启环境音');notify(state.audioOn?'环境音已开启':'环境音已关闭');
+      } catch(error){notify('环境音暂时无法开启。');}
+    }
+    $('soundButton').addEventListener('click',toggleAudio);
+    $('fullscreenButton').addEventListener('click',async()=>{
+      try {if(document.fullscreenElement)await document.exitFullscreen();else if($('mirrorShell').requestFullscreen)await $('mirrorShell').requestFullscreen();else notify('此浏览器暂不支持全屏，可横屏体验。');}catch(error){notify('此环境不支持全屏，请直接在镜面上体验。');}
+    });
+    document.addEventListener('fullscreenchange',()=>{$('fullscreenButton').setAttribute('aria-label',document.fullscreenElement?'退出全屏':'全屏体验');});
+    $('saveButton').addEventListener('click',()=>{
+      const button=$('saveButton');button.disabled=true;
+      try {
+        const shot=makeCanvas();shot.width=canvas.width;shot.height=canvas.height;const s=shot.getContext('2d');s.drawImage(canvas,0,0);const d=state.dpr;
+        s.fillStyle='#eaf0decc';s.font=`${11*d}px -apple-system, sans-serif`;s.fillText('MIST / 雾镜 · A MOMENT OF CLARITY',24*d,shot.height-24*d);
+        shot.toBlob(blob=>{button.disabled=false;if(!blob){notify('暂时无法保存图片，请重试。');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`MIST-${new Date().toISOString().replace(/[:.]/g,'-')}.png`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);notify('这一刻，已保存为图片。');},'image/png');
+      }catch(error){button.disabled=false;notify('暂时无法保存图片，请重试。');}
+    });
+    document.addEventListener('visibilitychange',()=>{state.previous.clear();state.hands=[];state.pointer=null;if(state.audio){if(document.hidden)state.audio.context.suspend();else if(state.audioOn)state.audio.context.resume().catch(()=>{});}});
+    window.addEventListener('pagehide',()=>{stopCamera();if(state.audio){state.audio.context.close();state.audio=null;state.audioOn=false;$('soundButton').setAttribute('aria-pressed','false');$('soundButton').setAttribute('aria-label','开启环境音');}});
+    if(matchMedia('(pointer: coarse)').matches)$('mirrorHint').textContent='拖动手指，在雾中留下痕迹';
+    resize();requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
