@@ -26,7 +26,7 @@ cd mist-web
 python3 -m http.server 8080
 ```
 
-访问 **http://localhost:8080/**。需要安装 Python 3；也可以使用其他静态文件服务器。停止服务时在终端按 `Ctrl+C`。
+访问 [http://localhost:8080/](http://localhost:8080/)。需要安装 Python 3；也可以使用其他静态文件服务器。停止服务时在终端按 `Ctrl+C`。
 
 ## 操作方式
 
